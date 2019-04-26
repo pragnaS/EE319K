@@ -40,15 +40,30 @@ void EnableInterrupts(void);  // Enable interrupts
 #define PF3       (*((volatile uint32_t *)0x40025020))
 uint32_t Data;      // 12-bit ADC
 uint32_t Position;  // 32-bit fixed-point 0.001 cm
+int TXCounter;
 
 
 // Initialize Port F so PF1, PF2 and PF3 are heartbeats
 void PortF_Init(void){
 // Intialize PortF for hearbeat
+		volatile int delay;
+	SYSCTL_RCGCGPIO_R |=0x20;			//PF2 is our heartbeat
+	delay++;
+	delay++;
+	delay++;
+	GPIO_PORTF_DIR_R |=0x0E;
+	GPIO_PORTF_DEN_R |=0x0E;
 }
 
 
-
+void SysTick_Init(void){
+        
+        NVIC_ST_CTRL_R =0; //Disable SysTick during setup
+        NVIC_ST_RELOAD_R = 1333333; //maximum reload value
+        NVIC_ST_CURRENT_R = 0; //any write to current clears it
+        //NVIC_SYS_PRI3_R = (NVIC_SYS_PRI3_R & 0x00FFFFFF) | 0x20000000;
+        NVIC_ST_CTRL_R =0x07;
+}
 
 uint32_t Status[20];             // entries 0,7,12,19 should be false, others true
 char GetData[10];  // entries 1 2 3 4 5 6 7 8 should be 1 2 3 4 5 6 7 8
@@ -81,7 +96,7 @@ int main1(void){ // Make this main to test FiFo
 // Get fit from excel and code the convert routine with the constants
 // from the curve-fit
 uint32_t Convert(uint32_t input){
-  return 0; //replace with your calibration code from Lab 8
+   return (0.4636*input + (46.138)); //replace with your calibration code from Lab 8
 }
 
 
@@ -90,10 +105,16 @@ uint32_t Convert(uint32_t input){
 // Receiver receives using RX
 int main(void){ 
   
+	char data;
+	int Buffer[10], i=1;
+	
   PLL_Init(Bus80MHz);     // Bus clock is 80 MHz 
   ST7735_InitR(INITR_REDTAB);
+	ST7735_FillScreen(0);
   ADC_Init();    // initialize to sample ADC
   PortF_Init();
+	SysTick_Init();
+	Fifo_Init();
   Uart_Init();       // initialize UART
   ST7735_SetCursor(0,0);
   LCD_OutFix(0);
@@ -102,6 +123,32 @@ int main(void){
   EnableInterrupts();
   while(1){
     //--UUU--Complete this  - see lab manual
+		ST7735_SetCursor(0,0);
+    Fifo_Get(&data);
+		
+      if(data==0x02)
+        {
+					if(data!=0)
+					{	
+					Fifo_Get(&data);
+					ST7735_OutChar(data); //getting from fifo and then outputting on LCD
+					
+					Fifo_Get(&data);
+					ST7735_OutChar(data);
+					
+					Fifo_Get(&data);
+					ST7735_OutChar(data);
+					
+					Fifo_Get(&data);
+					ST7735_OutChar(data);
+					
+					Fifo_Get(&data);
+					ST7735_OutChar(data);
+					
+          ST7735_OutString("cms");
+          }       
+     }
+		
   }
 }
 
@@ -109,6 +156,39 @@ int main(void){
 */
 void SysTick_Handler(void){ // every 20 ms
  //Sample ADC, convert to distance, create 8-byte message, send message out UART1
+	int digit;
+	
+	
+        GPIO_PORTF_DATA_R ^= 0x04;
+        Data=ADC_In();
+        GPIO_PORTF_DATA_R ^= 0x04;
+        Data=Convert(Data);
+        
+        Uart_OutChar(0x02);
+        
+        digit=Data/1000;
+        digit = digit+0x30;
+        Uart_OutChar(digit);
+  
+				digit=0x2E;
+				Uart_OutChar(digit);		//the decimal point
+	
+        Data=Data%1000;
+        digit=(Data/100)+0x30;
+        Uart_OutChar(digit); //writing to the fifo 
+        
+        Data=Data%100;                                     
+        digit=(Data/10)+0x30;
+        Uart_OutChar(digit);
+        
+        Data=Data%10;
+        digit=Data+0x30;
+        Uart_OutChar(digit);
 
+        Uart_OutChar(0x0D);
+        Uart_OutChar(0x03);
+        
+        TXCounter++;
+        GPIO_PORTF_DATA_R ^= 0x04;
+	
 }
-
