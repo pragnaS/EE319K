@@ -66,9 +66,38 @@ writecommand
 ;4) Write the command to SSI0_DR_R
 ;5) Read SSI0_SR_R and check bit 4, 
 ;6) If bit 4 is high, loop back to step 5 (wait for BUSY bit to be low)
+
+        PUSH {R4-R11, LR}
+
+Step1_wc         LDR R1, =SSI0_SR_R
+         LDR R2, [R1] 
+         MOV R3, R2                ;copying R2 into R3
+         AND R3, #0x10   ;masking bit 4
+		 LSR R3, #4
+         CMP R3, #1
+         BEQ Step1_wc                ;if bit 4 is high, loop back to step 1
+         
+         LDR R1, =DC            ;reading PortA data
+         LDR R2, [R1]
+         AND R2, #0xBF        ;clear PA6 - if you and this location with 1 aren't you just like returning its original value rather than clearing it ~ maybe and with #0xBF
+         STR R2, [R1] ;is the R1 supposed to be an R0 because below you need to write the command?
+         
+         LDR R1, =SSI0_DR_R
+         STR R0, [R1]        ;writing command to SSI0_DR_R
+         
+Step5         LDR R1, =SSI0_SR_R
+         LDR R2, [R1]
+         MOV R3, R2
+         AND R3, #0x10
+		 LSR R3, #4
+         CMP R3, #1
+         BEQ Step5
+         
+
+        POP {R4-R11, LR}
   
     
-    BX  LR                          ;   return
+		BX  LR                          ;   return
 
 ; This is a helper function that sends an 8-bit data to the LCD.
 ; Input: R0  8-bit data to transmit
@@ -81,8 +110,28 @@ writedata
 ;2) If bit 1 is low loop back to step 1 (wait for TNF bit to be high)
 ;3) Set D/C=PA6 to one
 ;4) Write the 8-bit data to SSI0_DR_R
+	     PUSH {R4-R11, LR}
+
+Step1_wd LDR R1, =SSI0_SR_R
+        LDR R2, [R1]
+        MOV R3, R2
+        AND R3, #0x02        ;masking bit 1
+		LSR R3, #1
+        CMP R3, #0
+        BEQ Step1_wd        ;if bit 1 is low, loop back to step 1
+        
+        LDR R1, =DC            ;reading PortA data
+        LDR R2, [R1]
+        ORR R2, #0x40        ;setting D/C to 1
+        STR R2, [R1]
+        
+        LDR R1, =SSI0_DR_R
+        STR R0, [R1]        ;writing data to SSI0_DR_R
+        
+        POP {R4-R11, LR}
+
     
-    BX  LR                          ;   return
+		BX  LR                          ;   return
 
 
 ;***************************************************
