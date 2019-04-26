@@ -6,8 +6,14 @@
 // Last modification date: change this to the last modification date or look very silly
 
 #include <stdint.h>
+#define FIFO_SIZE 7
+
 // --UUU-- Declare state variables for Fifo
 //        buffer, put and get indexes
+
+	int32_t static PutI; //Index to put new
+	int32_t static GetI; //Index of oldest 
+	int32_t static Fifo[FIFO_SIZE]; 
 
 
 // *********** Fifo_Init**********
@@ -16,6 +22,7 @@
 // put and get operations
 void Fifo_Init(){
 // --UUU-- Complete this
+	PutI=GetI=0;
 
 }
 
@@ -26,8 +33,12 @@ void Fifo_Init(){
 //         failure is when the buffer is full
 uint32_t Fifo_Put(char data){
 // --UUU-- Complete this routine
-
-  return(42); //Replace this
+	if( ((PutI+1)%FIFO_SIZE)== GetI){ 			//full FIFO check
+		return(0);
+	}
+	Fifo[PutI] = data; 
+	PutI = (PutI+1)%FIFO_SIZE; 	
+  return(1); 
 }
 
 // *********** FiFo_Get**********
@@ -37,9 +48,13 @@ uint32_t Fifo_Put(char data){
 //         failure is when the buffer is empty
 uint32_t Fifo_Get(char *datapt){ 
 //--UUU-- Complete this routine
+	if(GetI==PutI){ 	//empty fifo check
 
-  return(42); // Replace this
+		return(0);
+	}
+	*datapt = Fifo[GetI];
+	GetI = (GetI+1)%FIFO_SIZE;
+
+  return(1); 
 }
-
-
 
