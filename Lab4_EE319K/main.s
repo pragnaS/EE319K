@@ -94,10 +94,31 @@ Start
       BL   Switch_Init  ; initialize switch input
 ;**********************
       BL   Debug_Init ;(you write this)
+	  
 ;**********************
       CPSIE  I    ; TExaS logic analyzer runs on interrupts
       MOV  R5,#0  ; last PA4
-loop  
+loop 
+
+ONLIGHT
+	  LDR R0, =GPIO_PORTF_DATA_R
+	  LDR R1, [R0]
+	  EOR R1, #0x04
+	  STR R1, [R0]
+	  
+
+	  ;AND R0, #0
+	  ;ADD R0, #0xF1
+;dloop ;SUBS R0, #1
+	  ;CMP R0, #0
+	  ;BNE dloop
+	  
+	  
+;OFFLIGHT
+	  ;LDR R0, =GPIO_PORTF_DATA_R
+	  ;LDR R1, [R0]
+	  ;EOR R1, #0x04
+	  ;STR R1, [R0]
     
       LDR  R1,=GPIO_PORTA_DATA_R
       LDR  R4,[R1]  ;current value of switch
@@ -314,3 +335,4 @@ SendDataToLogicAnalyzer
     
       ALIGN      ; make sure the end of this section is aligned
       END        ; end of file
+
