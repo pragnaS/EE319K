@@ -21,11 +21,26 @@ NVIC_ST_CURRENT_R     EQU 0xE000E018
 ; Modifies: ??
 SysTick_Init
  ; **-UUU-**Implement this function****
+ LDR R0, = NVIC_ST_CTRL_R	;disabling Systick for set up
+ LDR R1, [R0]
+ AND R1, #0x00
+ STR R1, [R0]
  
-
-
-  
-    BX  LR                          ; return
+ LDR R0, = NVIC_ST_RELOAD_R	;setting the reload to max reload to allow for the counter to simply be an indicator what count it is on
+ LDR R1, [R0]
+ AND R1, #0x00FFFFFF
+ STR R1, [R0]
+ 
+ LDR R0, = NVIC_ST_CURRENT_R	;this states that if you were to write to this then the value of current will clear and the count flag will clear to zero
+ LDR R1, [R0]
+ AND R1, #0x00
+ STR R1, [R0]
+ 
+ LDR R0, = NVIC_ST_CTRL_R	;enables the systick clock to the core clock so it will decrement correctly
+ LDR R1, [R0]
+ ORR R1, #0x00000005
+ STR R1, [R0]
+ BX  LR                          ; return
 
 
     ALIGN                           ; make sure the end of this section is aligned
