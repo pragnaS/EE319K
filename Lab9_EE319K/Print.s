@@ -15,6 +15,8 @@
     EXPORT   LCD_OutFix
 
     AREA    |.text|, CODE, READONLY, ALIGN=2
+		
+star        DCB "*.***"
     THUMB
 
 ;-----------------------LCD_OutDec-----------------------
@@ -24,7 +26,38 @@
 ; Invariables: This function must not permanently modify registers R4 to R11
 LCD_OutDec
 ;; --UUU-- Complete this (copy from Lab7-8)
-    BX LR
+
+	    PUSH {LR, R0}
+        SUB SP, #8                 ;allocating num
+        
+        CMP R0, #10                ;comparing input with 10
+        BLO Print                ;if number is lesser than 10, then print to screen
+        
+        MOV R1, #10
+        UDIV R2, R0, R1                ;divided input by 10 and stores quotient into R2
+        BL FindRemainder        
+        STR R0, [SP]                ;storing remainder in stack
+        
+        MOV R0, R2                        ;moving quotient into R0
+        BL LCD_OutDec
+        LDR R0, [SP]                ;loads value 
+        
+Print
+        ADD R0, R0, #0x30
+        BL ST7735_OutChar        ;calling 
+        
+        ADD SP, #8
+        POP {LR, R0}
+
+        BX  LR
+        
+        
+FindRemainder
+        UDIV R3, R0, R1
+        MUL R1, R3, R1
+        SUB R0, R0, R1
+		
+		BX LR
 ;* * * * * * * * End of LCD_OutDec * * * * * * * *
 
 ; -----------------------LCD _OutFix----------------------
@@ -41,7 +74,60 @@ LCD_OutDec
 ; Invariables: This function must not permanently modify registers R4 to R11
 LCD_OutFix
 ;; --UUU-- Complete this (copy from Lab7-8)
-     BX LR
+
+	    PUSH {R4, LR}
+
+        MOV R1, #9999
+        CMP R0, R1
+        BHI NotInRange
+        
+        SUB SP, #8        ;allocating num
+        
+        STR R0, [SP] ;storing R0 in stack
+        
+        MOV R1, #1000
+        UDIV R0, R1        ;dividing to get thousandths place
+        ADD R0, #0x30        ;converting to ASCII character
+        BL ST7735_OutChar
+        
+        MOV R0, #0x2E
+        BL ST7735_OutChar        ;printing the period
+        
+        LDR R0, [SP]
+        MOV R1, #1000
+        BL FindRemainder        ;finding modulus
+        
+        MOV R1, #100                
+        UDIV R0, R1                ;dividing to get hundredths place
+        ADD R0, #0x30        ;converting to ASCII character
+        BL ST7735_OutChar
+        
+        LDR R0, [SP]
+        MOV R1, #100
+        BL FindRemainder ;finding modulus
+        
+        MOV R1, #10
+        UDIV R0, R1                ;dividing to get tenths place
+        ADD R0, #0x30        ;converting to ASCII character
+        BL ST7735_OutChar
+        
+        LDR R0, [SP]
+        MOV R1, #10
+        BL FindRemainder 
+        
+        ADD R0, #0x30
+        BL ST7735_OutChar
+        
+        ADD SP, #8
+        BX LR
+        
+NotInRange
+        LDR R0, =star
+        BL ST7735_OutString
+        
+        POP {R4, PC}
+		
+		BX LR
 ;* * * * * * * * End of LCD_OutFix * * * * * * * *
 
     ALIGN                           ; make sure the end of this section is aligned
