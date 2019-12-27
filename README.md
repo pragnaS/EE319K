@@ -1,2 +1,2 @@
 # EE319KLabs
-Labs 1-9
+Introduction to Embedded Systems 
